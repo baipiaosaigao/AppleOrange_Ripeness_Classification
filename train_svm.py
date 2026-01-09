@@ -7,13 +7,14 @@ from sklearn.metrics import accuracy_score
 from core.feature_extractor import extract_features
 
 # 1. 标签映射 (6分类)
+# 修改后 (严格对应字母顺序)
 LABEL_MAP = {
-    "apple_unripe": 0,
+    "apple_overripe": 0,
     "apple_ripe": 1,
-    "apple_overripe": 2,
-    "orange_unripe": 3,
+    "apple_unripe": 2,
+    "orange_overripe": 3,
     "orange_ripe": 4,
-    "orange_overripe": 5
+    "orange_unripe": 5
 }
 
 
