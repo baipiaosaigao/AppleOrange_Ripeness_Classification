@@ -165,3 +165,4 @@ def extract_features(image_path=None, image_data=None):
     ]
 
     return feats
+

@@ -24,40 +24,85 @@ print(f"当前使用的训练设备: {device}")
 # ===========================
 # 2. 定义 CNN 网络结构
 # ===========================
+# class SimpleCNN(nn.Module):
+#     def __init__(self, num_classes=6):
+#         super(SimpleCNN, self).__init__()
+#
+#         self.features = nn.Sequential(
+#             nn.Conv2d(3, 32, kernel_size=3, padding=1),
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool2d(kernel_size=2, stride=2),
+#
+#             nn.Conv2d(32, 64, kernel_size=3, padding=1),
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool2d(kernel_size=2, stride=2),
+#
+#             nn.Conv2d(64, 128, kernel_size=3, padding=1),
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool2d(kernel_size=2, stride=2),
+#         )
+#
+#         self.avgpool = nn.AdaptiveAvgPool2d((4, 4))
+#
+#         self.classifier = nn.Sequential(
+#             nn.Dropout(p=0.5),
+#             nn.Linear(128 * 4 * 4, 256),
+#             nn.ReLU(inplace=True),
+#             nn.Linear(256, num_classes)
+#         )
+#
+#     def forward(self, x):
+#         x = self.features(x)
+#         x = self.avgpool(x)
+#         x = torch.flatten(x, 1)
+#         x = self.classifier(x)
+#         return x
 class SimpleCNN(nn.Module):
     def __init__(self, num_classes=6):
         super(SimpleCNN, self).__init__()
 
         self.features = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, padding=1),
+            # === 第一层 ===
+            # 激进压缩: stride=2 + MaxPool
+            # 输入 224 -> Conv(s2) -> 112 -> Pool -> 56
+            nn.Conv2d(3, 32, kernel_size=3, padding=1, stride=2),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            # === 第二层 ===
+            # 输入 56 -> Conv(s2) -> 28 -> Pool -> 14
+            nn.Conv2d(32, 64, kernel_size=3, padding=1, stride=2),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            # === 第三层 (关键修改) ===
+            # 1. 依然使用 stride=2 压缩空间 (14 -> 7 -> 3)
+            # 2. 【核心】通道数从 128 改为 256！(补偿空间损失，增加特征丰富度)
+            nn.Conv2d(64, 256, kernel_size=3, padding=1, stride=2),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
         )
 
-        self.avgpool = nn.AdaptiveAvgPool2d((4, 4))
+        # 彻底移除 AvgPool
+        # self.avgpool = nn.AdaptiveAvgPool2d((4, 4))
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5),
-            nn.Linear(128 * 4 * 4, 256),
+            # 计算输入维度:
+            # 空间尺寸最终是 3x3 (14/2/2 = 3.5 -> floor(3))
+            # 通道数是 256
+            # Flatten后: 256 * 3 * 3 = 2304
+            nn.Linear(256 * 3 * 3, 256),
             nn.ReLU(inplace=True),
             nn.Linear(256, num_classes)
         )
 
     def forward(self, x):
         x = self.features(x)
-        x = self.avgpool(x)
+        # x = self.avgpool(x) # 不需要了
         x = torch.flatten(x, 1)
         x = self.classifier(x)
         return x
-
 
 # ===========================
 # 3. 训练主函数
